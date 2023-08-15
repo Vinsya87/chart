@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% load static %}
+
+
+<div class="container">
+  <header>
+    <form action="{% url 'app:populate' %}" method="post">
+      {% csrf_token %}
+      <button type="submit">Создать Базу <span>(если пустая)</span></button>
+    </form>
+    <form action="{% url 'app:clear_data' %}" method="post">
+      {% csrf_token %}
+      <button type="submit">Очистить данные</button>
+    </form>
+    <form action="{% url 'app:clear_cache' %}" method="post">
+      {% csrf_token %}
+      <button type="submit">Сбросить кеш</button>
+    </form>
+    
+  </header>
+  <canvas id="chart"></canvas>
+
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ru">
+{% load static %}
+{% load cache %}
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=1">
+</head>
+
+<body>
+  <div class="body_main">
+
+    <main>
+
+      {% block content %}
+      {% endblock %}
+
+    </main>
+  </div>
+  <!-- <script src="{% static 'js/chart.min.js' %}"></script> -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.3/dist/chart.umd.min.js"></script>
+  <script src="{% static 'js/jquery3-6-0.min.js' %}"></script>
+  <script defer src="{% static 'js/main.js' %}"></script>
+
+  <script defer>
+    var data_json = '{{ data_json }}';
+    var data = JSON.parse(data_json);
+    var title = '{{ title }}';
+    var ctx = document.getElementById('chart');
+    var myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.map(item => {
+            var startTimestamp = item[0];
+            var endTimestamp = item[1];
+
+            return `${startTimestamp} - ${endTimestamp}`;
+        }),
+            datasets: [
+                {
+                    label: 'Min Values',
+                    data: data.map(item => item[2]),
+                    backgroundColor: 'blue'
+                },
+                {
+                    label: 'Max Values',
+                    data: data.map(item => item[3]),
+                    backgroundColor: 'red'
+                }
+            ]
+        },
+        options: {
+            plugins: {
+                title: {
+                    display: true,
+                    text: title
+                },
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    stacked: true
+                },
+                y: {
+                    stacked: true
+                }
+            }
+        }
+    });
+
+    var selectedIntervals = [];
+var isShiftPressed = false;
+
+ctx.onclick = function(event) {
+    var activePoints = myChart.getElementsAtEventForMode(event, 'index', { intersect: true }, true);
+    if (activePoints.length > 0) {
+        var index = activePoints[0].index;
+
+        if (event.shiftKey) {
+            isShiftPressed = true;
+            var intervalIndex = selectedIntervals.indexOf(index);
+            if (intervalIndex === -1) {
+                selectedIntervals.push(index);
+            } else {
+                selectedIntervals.splice(intervalIndex, 1);
+            }
+        } else {
+            if (!isShiftPressed) {
+                selectedIntervals = [index];
+                updateChart();
+            }
+        }
+
+        console.log('Selected intervals:', selectedIntervals);
+    }
+};
+
+document.addEventListener('keyup', function(event) {
+    if (event.key === 'Shift') {
+        isShiftPressed = false;
+    }
+    
+    if (!isShiftPressed) {
+        updateChart();
+    }
+});
+
+function updateChart() {
+    var csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+    var startIndex = selectedIntervals[0];
+    var endIndex = selectedIntervals[selectedIntervals.length - 1];
+
+    $.ajax({
+        type: 'POST',
+        url: '{% url "app:update_interval" %}',
+        data: {
+            start_timestamp: data[startIndex][0],
+            end_timestamp: data[endIndex][1],
+            csrfmiddlewaretoken: csrfToken
+        },
+        success: function(response) {
+            var newData = JSON.parse(response.data_json);
+
+            title = `${newData[0][0]} - ${newData[newData.length - 1][1]}`;
+
+            $('#chartTitle').text(title);
+
+            myChart.data.labels = newData.map(item => {
+                var start = new Date(item[0] * 1000);
+                var end = new Date(item[1] * 1000);
+                var intervalLength = (end - start) / 1000;
+                var hours = Math.floor(intervalLength / 3600);
+                var minutes = Math.floor((intervalLength % 3600) / 60);
+                return `${hours} ч ${minutes} мин`;
+            });
+            myChart.data.datasets[0].data = newData.map(item => item[2]);
+            myChart.data.datasets[1].data = newData.map(item => item[3]);
+            myChart.options.plugins.title.text = title;
+            myChart.update();
+            data = newData;
+        },
+        error: function(xhr, errmsg, err) {
+            console.log(xhr.status + ": " + xhr.responseText);
+        }
+    });
+};
+</script>
+
+
+
+
+</body>
+
+</html>
