@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    restart: always
+    volumes:
+      - backend_static:/app/static/
+      - media_value:/app/media/
+    ports:
+      - "8000:8000"
+
+
+volumes:
+  backend_static:
+  media_value:
