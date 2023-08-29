@@ -1,5 +1,5 @@
 .container {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
   padding-top: 40px;
 }
@@ -9,6 +9,19 @@ object {
 #objectsArea {
   display: flex;
   justify-content: space-around;
+}
+#overlay {
+  top: 0;
+  right: 0;
+  position: absolute;
+  pointer-events:none;
+  z-index: 10;
+}
+#chart_back {
+  top: 0;
+  right: 0;
+  position:absolute;
+  z-index: 0;
 }
 button {
   height: 2.8em;
@@ -22,12 +35,16 @@ button {
   color: #016dd9;
   font-size: 17px;
 }
-header{
+.canvas {
+  position: relative;
+  overflow: hidden;
+}
+header {
   display: flex;
   justify-content: space-around;
   margin-bottom: 20px;
 }
-button span{
+button span {
   font-size: 14px;
   color: #333;
 }

@@ -18,10 +18,28 @@
       {% csrf_token %}
       <button type="submit">Сбросить кеш</button>
     </form>
-    
-  </header>
-  <canvas id="chart"></canvas>
 
+    
+    <form id="intervalForm">
+      <select id="intervalSelect">
+          {% for interval in intervals %}
+          <option value="{{ interval }}">{{ interval }}</option>
+          {% endfor %}
+      </select>
+      <button type="button" id="updateButton">Применить</button>
+  </form>
+  <button id="prevButton">Предыдущий</button>
+<button id="nextButton">Следующий</button>
+  
+  
+  
+  </header>
+  <div class="canvas">
+    <canvas id="chart"></canvas>
+    <canvas id="overlay"></canvas>
+    <canvas id="chart_back"></canvas>
+  </div>
+  
 </div>
 
 

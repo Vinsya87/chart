@@ -4,156 +4,299 @@
 {% load cache %}
 
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="/favicon.png" type="image/png">
-  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=1">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="/favicon.svg" type="image/svg">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}?v=1">
 </head>
 
 <body>
-  <div class="body_main">
+    <div class="body_main">
 
-    <main>
+        <main>
 
-      {% block content %}
-      {% endblock %}
+            {% block content %}
+            {% endblock %}
 
-    </main>
-  </div>
-  <!-- <script src="{% static 'js/chart.min.js' %}"></script> -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.3/dist/chart.umd.min.js"></script>
-  <script src="{% static 'js/jquery3-6-0.min.js' %}"></script>
-  <script defer src="{% static 'js/main.js' %}"></script>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="{% static 'js/chartjs-plugin-zoom.min.js' %}"></script>
+    <script src="{% static 'js/jquery3-6-0.min.js' %}"></script>
+    <script defer src="{% static 'js/main.js' %}"></script>
 
-  <script defer>
-    var data_json = '{{ data_json }}';
-    var data = JSON.parse(data_json);
-    var title = '{{ title }}';
-    var ctx = document.getElementById('chart');
-    var myChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: data.map(item => {
-            var startTimestamp = item[0];
-            var endTimestamp = item[1];
+    <script defer>
 
-            return `${startTimestamp} - ${endTimestamp}`;
-        }),
-            datasets: [
-                {
-                    label: 'Min Values',
-                    data: data.map(item => item[2]),
-                    backgroundColor: 'blue'
-                },
-                {
-                    label: 'Max Values',
-                    data: data.map(item => item[3]),
-                    backgroundColor: 'red'
-                }
-            ]
-        },
-        options: {
-            plugins: {
-                title: {
-                    display: true,
-                    text: title
-                },
-                legend: {
-                    display: false
-                }
+        var data_json = '{{ data_json }}';
+        var data = JSON.parse(data_json);
+        var title = '{{ title }}';
+        var ctx = document.getElementById('chart');
+        var myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(item => {
+                    var startTimestamp = item[0];
+                    var endTimestamp = item[1];
+
+                    return `${startTimestamp} - ${endTimestamp}`;
+                }),
+                datasets: [
+                    {
+                        label: 'Min Values',
+                        data: data.map(item => item[2]),
+                        backgroundColor: '#fff'
+                    },
+                    {
+                        label: 'Max Values',
+                        data: data.map(item => item[3]),
+                        backgroundColor: '#fff'
+                    }
+                ]
             },
-            scales: {
-                x: {
-                    stacked: true
+            options: {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: title,
+                        color: '#fff'
+                    },
+                    legend: {
+                        display: false
+                    }
                 },
-                y: {
-                    stacked: true
+                scales: {
+                    x: {
+                        stacked: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.0)',
+                            display: false
+                        },
+                        // display: false,
+                        ticks: {
+                            color: 'white',
+                        }
+                    },
+                    y: {
+                        stacked: true,
+
+                    }
                 }
             }
-        }
-    });
+        });
 
-    var selectedIntervals = [];
-var isShiftPressed = false;
 
-ctx.onclick = function(event) {
-    var activePoints = myChart.getElementsAtEventForMode(event, 'index', { intersect: true }, true);
-    if (activePoints.length > 0) {
-        var index = activePoints[0].index;
+        var ctx2 = document.getElementById('chart_back');
 
-        if (event.shiftKey) {
-            isShiftPressed = true;
-            var intervalIndex = selectedIntervals.indexOf(index);
-            if (intervalIndex === -1) {
-                selectedIntervals.push(index);
+        // Новый чарт с такими же параметрами как и первый чарт
+        var myChart_back = new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: data.map(item => {
+                    var startTimestamp = item[0];
+                    var endTimestamp = item[1];
+                    return `${startTimestamp} - ${endTimestamp}`;
+                }),
+                datasets: [
+                    {
+                        label: 'Min Values',
+                        data: data.map(item => item[2]),
+                        backgroundColor: 'blue'
+                    },
+                    {
+                        label: 'Max Values',
+                        data: data.map(item => item[3]),
+                        backgroundColor: 'red'
+                    }
+                ]
+            },
+            options: {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: title,
+                        // color: '#fff'
+                    },
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.0)',
+                        },
+                        // display: false,
+                        ticks: {
+                            color: '#333',
+                        }
+                    },
+                    y: {
+                        stacked: true,
+                        display: false,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.5)',
+                        },
+                        ticks: {
+                            color: '#333',
+                        }
+                    }
+                }
+            }
+        });
+
+        var isShiftPressed = false;
+
+        window.addEventListener('keydown', evt => {
+            if (evt.key === 'Shift') {
+                isShiftPressed = true;
+            }
+        });
+        window.addEventListener('keyup', evt => {
+            if (evt.key === 'Shift') {
+                isShiftPressed = false;
+            }
+        });
+
+        var overlay = document.getElementById('overlay');
+        var selectionContext = overlay.getContext('2d');
+        var selectionRect = {
+            w: 0,
+            startX: 0,
+            startY: 0
+        };
+        var drag = false;
+
+        overlay.width = ctx.width;
+        overlay.height = ctx.height;
+
+        var selectedIntervals = [];
+
+        ctx.addEventListener('pointerdown', evt => {
+            if (isShiftPressed) {
+                const points = myChart.getElementsAtEventForMode(evt, 'index', { intersect: false });
+                if (points.length > 0) {
+                    const rect = ctx.getBoundingClientRect();
+                    selectionRect.startX = evt.clientX - rect.left;
+                    selectionRect.startY = myChart.chartArea.top;
+                    drag = true;
+                }
+            }
+
+        });
+        ctx.addEventListener('click', evt => {
+            if (isShiftPressed) {
+                selectedIntervals = [];
+                const points = myChart.getElementsAtEventForMode(evt, 'index', { intersect: false });
+                if (points.length > 0) {
+                    const rect = ctx.getBoundingClientRect();
+                    const startX = evt.clientX - rect.left;
+                    const startIndex = myChart.scales.x.getValueForPixel(startX);
+                    if (startIndex !== null) {
+                        selectedIntervals.push([startIndex, startIndex]);
+                        updateChart();
+                    }
+                }
+            }
+        });
+
+        ctx.addEventListener('pointermove', evt => {
+            const rect = ctx.getBoundingClientRect();
+            const newX = evt.clientX - rect.left;
+            const y = evt.clientY - rect.top;
+            if (drag) {
+                selectionRect.w = newX - selectionRect.startX;
+                selectionContext.globalAlpha = 0.5;
+                selectionContext.clearRect(0, 0, overlay.width, overlay.height);
+                selectionContext.fillRect(selectionRect.startX,
+                    selectionRect.startY,
+                    selectionRect.w,
+                    myChart.chartArea.bottom - myChart.chartArea.top);
             } else {
-                selectedIntervals.splice(intervalIndex, 1);
+                selectionContext.clearRect(0, 0, overlay.width, overlay.height);
+                var x = evt.clientX - rect.left;
+                if (x > myChart.chartArea.left) {
+                    selectionContext.fillRect(x,
+                        myChart.chartArea.top,
+                        1,
+                        myChart.chartArea.bottom - myChart.chartArea.top);
+                }
             }
-        } else {
-            if (!isShiftPressed) {
-                selectedIntervals = [index];
-                updateChart();
+        });
+
+        ctx.addEventListener('pointerup', evt => {
+            if (isShiftPressed) {
+                drag = false;
+                if (selectionRect.w !== 0) {
+                    var startX = selectionRect.startX;
+                    var endX = startX + selectionRect.w;
+                    var startIndex = myChart.scales.x.getValueForPixel(startX);
+                    var endIndex = myChart.scales.x.getValueForPixel(endX);
+
+                    // Инвертируем начальный и конечный индексы, если выбор справа налево
+                    if (startIndex > endIndex) {
+                        var temp = startIndex;
+                        startIndex = endIndex;
+                        endIndex = temp;
+                    }
+
+                    if (startIndex !== null && endIndex !== null) {
+                        selectedIntervals.push([startIndex, endIndex]);
+                        updateChart();
+                    }
+
+                    selectionContext.clearRect(0, 0, overlay.width, overlay.height);
+                    selectionRect.w = 0;
+                }
             }
-        }
+        });
 
-        console.log('Selected intervals:', selectedIntervals);
-    }
-};
+        function updateChart() {
+            var csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
 
-document.addEventListener('keyup', function(event) {
-    if (event.key === 'Shift') {
-        isShiftPressed = false;
-    }
-    
-    if (!isShiftPressed) {
-        updateChart();
-    }
-});
-
-function updateChart() {
-    var csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
-    var startIndex = selectedIntervals[0];
-    var endIndex = selectedIntervals[selectedIntervals.length - 1];
-
-    $.ajax({
-        type: 'POST',
-        url: '{% url "app:update_interval" %}',
-        data: {
-            start_timestamp: data[startIndex][0],
-            end_timestamp: data[endIndex][1],
-            csrfmiddlewaretoken: csrfToken
-        },
-        success: function(response) {
-            var newData = JSON.parse(response.data_json);
-
-            title = `${newData[0][0]} - ${newData[newData.length - 1][1]}`;
-
-            $('#chartTitle').text(title);
-
-            myChart.data.labels = newData.map(item => {
-                var start = new Date(item[0] * 1000);
-                var end = new Date(item[1] * 1000);
-                var intervalLength = (end - start) / 1000;
-                var hours = Math.floor(intervalLength / 3600);
-                var minutes = Math.floor((intervalLength % 3600) / 60);
-                return `${hours} ч ${minutes} мин`;
+            var selectedIntervalData = selectedIntervals.map(interval => {
+                var startInterval = interval[0];
+                var endInterval = interval[1];
+                var start = data[startInterval][0];
+                var end = data[endInterval][1];
+                return { start_timestamp: start, end_timestamp: end };
             });
-            myChart.data.datasets[0].data = newData.map(item => item[2]);
-            myChart.data.datasets[1].data = newData.map(item => item[3]);
-            myChart.options.plugins.title.text = title;
-            myChart.update();
-            data = newData;
-        },
-        error: function(xhr, errmsg, err) {
-            console.log(xhr.status + ": " + xhr.responseText);
+
+            $.ajax({
+                type: 'POST',
+                url: '{% url "app:update_interval" %}',
+                data: {
+                    intervals: selectedIntervalData,
+                    csrfmiddlewaretoken: csrfToken
+                },
+                success: function (response) {
+                    var newData = JSON.parse(response.data_json);
+
+                    title = `${newData[0][0]} - ${newData[newData.length - 1][1]}`;
+
+                    $('#chartTitle').text(title);
+
+                    myChart.data.labels = newData.map(item => `${item[0]} - ${item[1]}`);
+                    myChart.data.datasets[0].data = newData.map(item => item[2]);
+                    myChart.data.datasets[1].data = newData.map(item => item[3]);
+                    myChart.options.plugins.title.text = title;
+                    myChart.update();
+                    selectedIntervals = [];
+                    data = newData;
+
+                    myChart_back.data.labels = newData.map(item => `${item[0]} - ${item[1]}`);
+                    myChart_back.data.datasets[0].data = newData.map(item => item[2]);
+                    myChart_back.data.datasets[1].data = newData.map(item => item[3]);
+                    myChart_back.options.plugins.title.text = title;
+                    myChart_back.update();
+                },
+                error: function (xhr, errmsg, err) {
+                    console.log(xhr.status + ": " + xhr.responseText);
+                }
+            });
         }
-    });
-};
-</script>
 
-
-
-
+    </script>
 </body>
 
 </html>

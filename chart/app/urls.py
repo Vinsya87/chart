@@ -12,6 +12,7 @@ urlpatterns = [
     path('clear-data/', views.clear_data, name='clear_data'),
     path('clear-cache/', views.clear_cache, name='clear_cache'),
     path('update_interval/', views.update_interval, name='update_interval'),
+    path('new_interval/', views.new_interval, name='new_interval'),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
