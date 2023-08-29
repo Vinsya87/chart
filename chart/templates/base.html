@@ -172,51 +172,66 @@
 
         var selectedIntervals = [];
 
+        // Слушаем Шифт и Кнопку мыши для выделения области
         ctx.addEventListener('pointerdown', evt => {
+            // Нажата ли клавиша Shift
             if (isShiftPressed) {
+                // Получаем точки, на которые указывает указатель мыши
                 const points = myChart.getElementsAtEventForMode(evt, 'index', { intersect: false });
+
+                // Проверяем, есть ли какие-либо точки (элементы графика) в указанной области
                 if (points.length > 0) {
+                    // Получаем область, и позицию указателя относительно него
                     const rect = ctx.getBoundingClientRect();
+
+                    // Устанавливаем начальные координаты выделения
                     selectionRect.startX = evt.clientX - rect.left;
                     selectionRect.startY = myChart.chartArea.top;
+
+                    // Устанавливаем флаг, сигнализирующий о начале перемещения (drag)
                     drag = true;
                 }
             }
-
         });
+
         ctx.addEventListener('click', evt => {
             if (isShiftPressed) {
-                selectedIntervals = [];
+                selectedIntervals = [];  // Обнуление массива выбранных интервалов
                 const points = myChart.getElementsAtEventForMode(evt, 'index', { intersect: false });
+
                 if (points.length > 0) {
-                    const rect = ctx.getBoundingClientRect();
-                    const startX = evt.clientX - rect.left;
-                    const startIndex = myChart.scales.x.getValueForPixel(startX);
-                    if (startIndex !== null) {
-                        selectedIntervals.push([startIndex, startIndex]);
-                        updateChart();
+                    const rect = ctx.getBoundingClientRect();  // Получаем область
+                    const startX = evt.clientX - rect.left;  // Начальные координаты клика
+                    const startIndex = myChart.scales.x.getValueForPixel(startX);  // Получение индекса точки на горизонтальной шкале
+
+                    if (startIndex !== null) {  // Проверка индекса точки
+                        selectedIntervals.push([startIndex, startIndex]);  // Добавление нового интервала в массив
+                        updateChart();  // Обновление графика с учетом выбранных интервалов
                     }
                 }
             }
         });
 
+
         ctx.addEventListener('pointermove', evt => {
-            const rect = ctx.getBoundingClientRect();
-            const newX = evt.clientX - rect.left;
-            const y = evt.clientY - rect.top;
-            if (drag) {
-                selectionRect.w = newX - selectionRect.startX;
-                selectionContext.globalAlpha = 0.5;
-                selectionContext.clearRect(0, 0, overlay.width, overlay.height);
-                selectionContext.fillRect(selectionRect.startX,
+            const rect = ctx.getBoundingClientRect();  // Получение координат прямоугольника области
+            const newX = evt.clientX - rect.left;  // Вычисление новой координаты по X
+            const y = evt.clientY - rect.top;  // Вычисление координаты по Y
+
+            if (drag) {  // Если активен режим перетаскивания
+                selectionRect.w = newX - selectionRect.startX;  // Вычисление ширины прямоугольной области выделения
+                selectionContext.globalAlpha = 0.5;  // Установка полупрозрачности для области выделения
+                selectionContext.clearRect(0, 0, overlay.width, overlay.height);  // Очистка области выделения
+                selectionContext.fillRect(selectionRect.startX,  // Рисование прямоугольной области выделения
                     selectionRect.startY,
                     selectionRect.w,
                     myChart.chartArea.bottom - myChart.chartArea.top);
-            } else {
-                selectionContext.clearRect(0, 0, overlay.width, overlay.height);
-                var x = evt.clientX - rect.left;
-                if (x > myChart.chartArea.left) {
-                    selectionContext.fillRect(x,
+            } else {  // Если неактивен режим перетаскивания (рисование вертикальной линии)
+                selectionContext.clearRect(0, 0, overlay.width, overlay.height);  // Очистка области выделения
+                var x = evt.clientX - rect.left;  // Вычисление координаты X относительно области элемента
+
+                if (x > myChart.chartArea.left) {  // Проверка, что координата X находится в пределах области графика
+                    selectionContext.fillRect(x,  // Рисование вертикальной линии
                         myChart.chartArea.top,
                         1,
                         myChart.chartArea.bottom - myChart.chartArea.top);
@@ -224,16 +239,18 @@
             }
         });
 
+
         ctx.addEventListener('pointerup', evt => {
             if (isShiftPressed) {
-                drag = false;
-                if (selectionRect.w !== 0) {
+                drag = false;  // Отключение режима перетаскивания
+
+                if (selectionRect.w !== 0) {  // Если была создана область выделения
                     var startX = selectionRect.startX;
                     var endX = startX + selectionRect.w;
                     var startIndex = myChart.scales.x.getValueForPixel(startX);
                     var endIndex = myChart.scales.x.getValueForPixel(endX);
 
-                    // Инвертируем начальный и конечный индексы, если выбор справа налево
+                    // Инвертирование начального и конечного индексов, если выбор справа налево
                     if (startIndex > endIndex) {
                         var temp = startIndex;
                         startIndex = endIndex;
@@ -241,15 +258,16 @@
                     }
 
                     if (startIndex !== null && endIndex !== null) {
-                        selectedIntervals.push([startIndex, endIndex]);
-                        updateChart();
+                        selectedIntervals.push([startIndex, endIndex]);  // Добавление выбранного интервала в массив
+                        updateChart();  // Обновление графика с учетом нового выбранного интервала
                     }
 
-                    selectionContext.clearRect(0, 0, overlay.width, overlay.height);
-                    selectionRect.w = 0;
+                    selectionContext.clearRect(0, 0, overlay.width, overlay.height);  // Очистка области выделения
+                    selectionRect.w = 0;  // Сброс ширины области выделения
                 }
             }
         });
+
 
         function updateChart() {
             var csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
