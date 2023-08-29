@@ -1,7 +1,7 @@
-python3 -m venv venv && . venv/bin/activate python -m pip install --upgrade pip python -m pip install -r requirements.txt
+Открыть папку chart из нее запустить терминал и в нем запустить докер файл
 
-в папке chart пример файла .env для доступа к БД
+sudo docker-compose up -d --build
 
-python manage.py migrate выполнить миграции и должно работать
+или другим привычным способом
 
-python3 manage.py runserver
+после этого проект доступен по http://127.0.0.1:8000/
