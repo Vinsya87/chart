@@ -27,8 +27,7 @@
 
     <script defer>
 
-        var data_json = '{{ data_json }}';
-        var data = JSON.parse(data_json);
+        var data = []
         var title = '{{ title }}';
         var ctx = document.getElementById('chart');
         var myChart = new Chart(ctx, {
@@ -171,6 +170,7 @@
         overlay.height = ctx.height;
 
         var selectedIntervals = [];
+        let isSelecting = true;
 
         // Слушаем Шифт и Кнопку мыши для выделения области
         ctx.addEventListener('pointerdown', evt => {
@@ -178,7 +178,7 @@
             if (isShiftPressed) {
                 // Получаем точки, на которые указывает указатель мыши
                 const points = myChart.getElementsAtEventForMode(evt, 'index', { intersect: false });
-
+                
                 // Проверяем, есть ли какие-либо точки (элементы графика) в указанной области
                 if (points.length > 0) {
                     // Получаем область, и позицию указателя относительно него
@@ -195,7 +195,8 @@
         });
 
         ctx.addEventListener('click', evt => {
-            if (isShiftPressed) {
+            if (isShiftPressed && isSelecting) {
+                
                 selectedIntervals = [];  // Обнуление массива выбранных интервалов
                 const points = myChart.getElementsAtEventForMode(evt, 'index', { intersect: false });
 
@@ -206,6 +207,7 @@
 
                     if (startIndex !== null) {  // Проверка индекса точки
                         selectedIntervals.push([startIndex, startIndex]);  // Добавление нового интервала в массив
+                        console.log('click');
                         updateChart();  // Обновление графика с учетом выбранных интервалов
                     }
                 }
@@ -217,8 +219,9 @@
             const rect = ctx.getBoundingClientRect();  // Получение координат прямоугольника области
             const newX = evt.clientX - rect.left;  // Вычисление новой координаты по X
             const y = evt.clientY - rect.top;  // Вычисление координаты по Y
-
+            
             if (drag) {  // Если активен режим перетаскивания
+                isSelecting = false;
                 selectionRect.w = newX - selectionRect.startX;  // Вычисление ширины прямоугольной области выделения
                 selectionContext.globalAlpha = 0.5;  // Установка полупрозрачности для области выделения
                 selectionContext.clearRect(0, 0, overlay.width, overlay.height);  // Очистка области выделения
@@ -243,7 +246,7 @@
         ctx.addEventListener('pointerup', evt => {
             if (isShiftPressed) {
                 drag = false;  // Отключение режима перетаскивания
-
+                
                 if (selectionRect.w !== 0) {  // Если была создана область выделения
                     var startX = selectionRect.startX;
                     var endX = startX + selectionRect.w;
@@ -264,6 +267,8 @@
 
                     selectionContext.clearRect(0, 0, overlay.width, overlay.height);  // Очистка области выделения
                     selectionRect.w = 0;  // Сброс ширины области выделения
+                } else {
+                    isSelecting = true;
                 }
             }
         });
@@ -309,8 +314,14 @@
                     myChart_back.update();
                 },
                 error: function (xhr, errmsg, err) {
-                    console.log(xhr.status + ": " + xhr.responseText);
+                    if (xhr.status === 400) {
+                        var errorMessage = JSON.parse(xhr.responseText).error;
+                        alert(errorMessage);
+                    } else {
+                        console.log(xhr.status + ": " + xhr.responseText);
+                    }
                 }
+
             });
         }
 

@@ -1,9 +1,11 @@
 import json
-from django.shortcuts import render, redirect
-from datetime import datetime, timedelta
-from django.utils import timezone
-from django.http import JsonResponse
 import random
+from datetime import datetime, timedelta
+
+from django.http import JsonResponse
+from django.shortcuts import redirect, render
+from django.utils import timezone
+
 from .models import DataPoint
 
 
@@ -23,53 +25,7 @@ def index(request):
 
     context = {'intervals': intervals,
                'data_json': []}
-    print(intervals)
     return render(request, 'index.html', context)
-
-
-# def index(request):
-#     data_points = DataPoint.objects.all().order_by('date')
-
-#     if data_points.exists():
-#         total_time_range = data_points.last().date - data_points.first().date
-#         session_selected_interval = request.session.get('selected_interval')
-
-#         if session_selected_interval:
-#             interval_duration = session_selected_interval / 10
-#         else:
-#             interval_duration = total_time_range.total_seconds() / 10
-
-#         title = f'{data_points.last().date.strftime("%Y-%m-%d %H:%M:%S")} - {data_points.first().date.strftime("%Y-%m-%d %H:%M:%S")}'
-
-#         data = []
-#         for i in range(0, 10):
-#             start_datetime = data_points.first().date + timedelta(seconds=interval_duration * i)
-#             end_datetime = start_datetime + timedelta(seconds=interval_duration)
-
-#             interval_data = data_points.filter(date__gte=start_datetime, date__lt=end_datetime)
-
-#             if interval_data.exists():
-#                 min_value = min(interval_data, key=lambda x: x.number).number
-#                 max_value = max(interval_data, key=lambda x: x.number).number
-#             else:
-#                 min_value = 0
-#                 max_value = 0
-
-#             data.append([int(start_datetime.timestamp()), int(end_datetime.timestamp()), min_value, max_value])
-
-#         data_json = json.dumps(data)
-#         context = {
-#             'data_json': data_json,
-#             'title': title
-#         }
-#     else:
-#         total_time_range = timedelta(seconds=0)
-#         context = {
-#             'data_json': '[]',
-#             'title': 'No Data Available'
-#         }
-
-#     return render(request, 'index.html', context)
 
 
 def update_interval(request):
@@ -81,21 +37,47 @@ def update_interval(request):
         start_datetime = timezone.make_aware(start_datetime)
         end_datetime = timezone.make_aware(end_datetime)
         total_interval_seconds = (end_datetime - start_datetime).total_seconds()
-        if total_interval_seconds < 10:
-            response_data = {'error': 'Interval is too short to be divided into 10 parts'}
-            return JsonResponse(response_data, status=400)
+        desired_interval_count = 60
         new_interval_data = []
-        for i in range(0, 10):
-            start_interval = start_datetime + timedelta(seconds=total_interval_seconds * i / 10)
-            end_interval = start_datetime + timedelta(seconds=total_interval_seconds * (i + 1) / 10)
 
-            interval_data_subset = DataPoint.objects.filter(date__gte=start_interval, date__lt=end_interval)
+        # Если интервал больше 60 секунд, разделим его на 60 интервалов
+        if total_interval_seconds >= desired_interval_count:
+            interval_length = total_interval_seconds / desired_interval_count
+            for i in range(desired_interval_count):
+                start_interval = start_datetime + timedelta(seconds=interval_length * i)
+                end_interval = start_datetime + timedelta(seconds=interval_length * (i + 1))
 
-            min_value = min(interval_data_subset, key=lambda x: x.number).number
-            max_value = max(interval_data_subset, key=lambda x: x.number).number
+                interval_data_subset = DataPoint.objects.filter(date__gte=start_interval, date__lt=end_interval)
 
-            new_interval_data.append([int(start_interval.timestamp()), int(end_interval.timestamp()), min_value, max_value])
+                min_value = min(interval_data_subset, key=lambda x: x.number).number
+                max_value = max(interval_data_subset, key=lambda x: x.number).number
 
+                new_interval_data.append([int(start_interval.timestamp()), int(end_interval.timestamp()), min_value, max_value])
+        else:
+            desired_interval_count = 30
+            finish = desired_interval_count - total_interval_seconds
+            difference = finish // 2
+            start_datetime = start_datetime - timedelta(seconds=difference)
+            interval_length = 1
+            for i in range(desired_interval_count):
+                start_interval = start_datetime + timedelta(seconds=interval_length * i)
+                end_interval = start_datetime + timedelta(seconds=interval_length * (i + 1))
+
+                interval_data_subset = DataPoint.objects.filter(date__gte=start_interval, date__lt=end_interval)
+                if interval_data_subset:
+                    value = interval_data_subset[0].number
+                    if value > 0:
+                        max_value = max(interval_data_subset, key=lambda x: x.number).number
+                        min_value = 0
+                    else:
+                        min_value = min(interval_data_subset, key=lambda x: x.number).number
+                        max_value = 0
+                else:
+                    max_value = 0
+                    min_value = 0
+                new_interval_data.append([int(start_interval.timestamp()), int(end_interval.timestamp()), min_value, max_value])
+
+        # Создаем интервалы
         new_data_json = json.dumps(new_interval_data)
         response_data = {'data_json': new_data_json}
         return JsonResponse(response_data)
@@ -105,32 +87,51 @@ def new_interval(request):
     if request.method == 'POST':
         start_timestamp = int(request.POST['start_timestamp'])
         end_timestamp = int(request.POST['end_timestamp'])
-
-        print("start_timestamp:", start_timestamp)
-        print("end_timestamp:", end_timestamp)
         
         start_datetime = timezone.datetime.fromtimestamp(start_timestamp)
         end_datetime = timezone.datetime.fromtimestamp(end_timestamp)
         
         total_interval_seconds = (end_datetime - start_datetime).total_seconds()
-        
-        if total_interval_seconds < 10:
-            response_data = {'error': 'Interval is too short to be divided into 10 parts'}
-            return JsonResponse(response_data, status=400)
-        
+        desired_interval_count = 60
         new_interval_data = []
-        
-        for i in range(0, 10):
-            start_interval = start_datetime + timedelta(seconds=total_interval_seconds * i / 10)
-            end_interval = start_datetime + timedelta(seconds=total_interval_seconds * (i + 1) / 10)
-            
-            interval_data_subset = DataPoint.objects.filter(date__gte=start_interval, date__lt=end_interval)
-            
-            min_value = min(interval_data_subset, key=lambda x: x.number).number
-            max_value = max(interval_data_subset, key=lambda x: x.number).number
-            
-            new_interval_data.append([int(start_interval.timestamp()), int(end_interval.timestamp()), min_value, max_value])
-        
+
+        # Если интервал больше 60 секунд, разделим его на 60 интервалов
+        if total_interval_seconds >= desired_interval_count:
+            interval_length = total_interval_seconds / desired_interval_count
+            for i in range(desired_interval_count):
+                start_interval = start_datetime + timedelta(seconds=interval_length * i)
+                end_interval = start_datetime + timedelta(seconds=interval_length * (i + 1))
+
+                interval_data_subset = DataPoint.objects.filter(date__gte=start_interval, date__lt=end_interval)
+
+                min_value = min(interval_data_subset, key=lambda x: x.number).number
+                max_value = max(interval_data_subset, key=lambda x: x.number).number
+
+                new_interval_data.append([int(start_interval.timestamp()), int(end_interval.timestamp()), min_value, max_value])
+        else:
+            desired_interval_count = 30
+            finish = desired_interval_count - total_interval_seconds
+            difference = finish // 2
+            start_datetime = start_datetime - timedelta(seconds=difference)
+            interval_length = 1
+            for i in range(desired_interval_count):
+                start_interval = start_datetime + timedelta(seconds=interval_length * i)
+                end_interval = start_datetime + timedelta(seconds=interval_length * (i + 1))
+
+                interval_data_subset = DataPoint.objects.filter(date__gte=start_interval, date__lt=end_interval)
+                if interval_data_subset:
+                    value = interval_data_subset[0].number
+                    if value > 0:
+                        max_value = max(interval_data_subset, key=lambda x: x.number).number
+                        min_value = 0
+                    else:
+                        min_value = min(interval_data_subset, key=lambda x: x.number).number
+                        max_value = 0
+                else:
+                    max_value = 0
+                    min_value = 0
+                new_interval_data.append([int(start_interval.timestamp()), int(end_interval.timestamp()), min_value, max_value])
+
         new_data_json = json.dumps(new_interval_data)
         response_data = {'data_json': new_data_json}
         return JsonResponse(response_data)

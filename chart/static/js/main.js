@@ -29,13 +29,12 @@ $(document).ready(function () {
 function newUpdateChart(newData) {
   var title = `${newData[0][0]} - ${newData[newData.length - 1][1]}`;
 
-  $('#chartTitle').text(title);
+  $("#chartTitle").text(title);
 
-myChart.data.labels = newData.map(item => `${item[0]} - ${item[1]}`);
+  myChart.data.labels = newData.map((item) => `${item[0]} - ${item[1]}`);
 
-
-  myChart.data.datasets[0].data = newData.map(item => item[2]);
-  myChart.data.datasets[1].data = newData.map(item => item[3]);
+  myChart.data.datasets[0].data = newData.map((item) => item[2]);
+  myChart.data.datasets[1].data = newData.map((item) => item[3]);
   myChart.options.plugins.title.text = title;
   myChart.update();
   data = newData;
@@ -49,7 +48,7 @@ myChart.data.labels = newData.map(item => `${item[0]} - ${item[1]}`);
 
 function updateIntervalAndChart(startInterval, endInterval) {
   var csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
-  
+
   $.ajax({
     type: "POST",
     url: "/new_interval/",
@@ -92,30 +91,28 @@ $("#prevButton").click(function () {
   updateIntervalAndChart(startInterval, endInterval);
 });
 
-
-
-
 $(document).ready(function () {
-  var chartBack = $('#chart_back');
+  var chartBack = $("#chart_back");
   var isDragging = false;
   var startX = 0;
   var startTranslate = 0;
-  window.addEventListener('keydown', evt => {
-    if (evt.key === 'Shift') {
-      chartBack.css('pointer-events', 'none');
+  window.addEventListener("keydown", (evt) => {
+    if (evt.key === "Shift") {
+      chartBack.css("pointer-events", "none");
     }
-});
+  });
   $(document).keyup(function (event) {
     if (event.key === "Shift") {
-      chartBack.css('pointer-events', 'auto');
+      chartBack.css("pointer-events", "auto");
     }
   });
 
   $(document).mousedown(function (event) {
     if ($(event.target).is(chartBack)) {
       startX = event.clientX;
-      startTranslate = parseFloat(chartBack.css('transform').split(',')[4]) || 0;
-  
+      startTranslate =
+        parseFloat(chartBack.css("transform").split(",")[4]) || 0;
+
       if (event.shiftKey) {
         // chartBack.css('pointer-events', 'none');
       } else {
@@ -124,30 +121,40 @@ $(document).ready(function () {
       }
     }
   });
-      
 
   $(document).mousemove(function (event) {
     if (isDragging) {
       var diffX = event.clientX - startX;
       var newTranslate = startTranslate + diffX;
 
-      chartBack.css('transform', `translateX(${newTranslate}px)`);
+      chartBack.css("transform", `translateX(${newTranslate}px)`);
     }
   });
 
   $(document).mouseup(function () {
     if (isDragging) {
       isDragging = false;
-      var dragDistance = startTranslate - (parseFloat(chartBack.css('transform').split(',')[4]) || 0);
+      var dragDistance =
+        startTranslate -
+        (parseFloat(chartBack.css("transform").split(",")[4]) || 0);
+
+        if (dragDistance > 200) {
+          // Ограничиваем визуальное смещение на 200px
+          dragDistance = 200;
+        } else if (dragDistance < -200) {
+          // Ограничиваем визуальное смещение на -200px
+          dragDistance = -200;
+        }
 
       if (dragDistance > 100) {
         var startInterval = data[0][0];
         var endInterval = data[data.length - 1][1];
         var intervalDifference = endInterval - startInterval;
 
-        // Сдвигаем интервалы на предыдущий шаг
-        endInterval = startInterval;
-        startInterval = startInterval - intervalDifference;
+        // Сдвигаем интервалы на предыдущий шаг (влево)
+
+        startInterval = endInterval;
+        endInterval = endInterval + intervalDifference;
 
         updateIntervalAndChart(startInterval, endInterval);
       } else if (dragDistance < -100) {
@@ -155,14 +162,14 @@ $(document).ready(function () {
         var endInterval = data[data.length - 1][1];
         var intervalDifference = endInterval - startInterval;
 
-        // Сдвигаем интервалы на следующий шаг
-        startInterval = endInterval;
-        endInterval = endInterval + intervalDifference;
+        // Сдвигаем интервалы на следующий шаг (направо)
+        endInterval = startInterval;
+        startInterval = startInterval - intervalDifference;
 
         updateIntervalAndChart(startInterval, endInterval);
       }
 
-      chartBack.css('transform', 'translateX(0px)');
+      chartBack.css("transform", "translateX(0px)");
     }
   });
 });
